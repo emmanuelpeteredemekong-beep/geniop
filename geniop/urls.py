@@ -1,8 +1,9 @@
-from django.contrib import admin
 from django.urls import path
-from home.views import home
+from . import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', home, name='home'),
+    path('', views.home, name='home'),
+    path('home/', views.home, name='home'),
+    path('upload-report/', views.upload_report, name='upload_report'),
+    path('mark-paid/<int:id>/', views.mark_paid, name='mark_paid'),
 ]
