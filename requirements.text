@@ -1,0 +1,6 @@
+Django==5.0.6
+gunicorn
+psycopg2-binary
+python-dotenv
+whitenoise
+openpyxl
