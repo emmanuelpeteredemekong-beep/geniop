@@ -206,3 +206,11 @@ def upload_report(request):
         if file:
             SalesReport.objects.create(user=request.user, file=file)
     return redirect('/home/?tab=sales')
+
+@login_required
+def mark_paid(request, id):
+    report = SalesReport.objects.filter(id=id, user=request.user).first()
+    if report:
+        report.is_paid = True
+        report.save()
+    return redirect('/home/?tab=sales')
