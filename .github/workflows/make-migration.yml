@@ -1,22 +1,28 @@
 name: Create Migration File
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
-      - name: Install deps
-        run: pip install -r requirements.txt
+          python-version: '3.11'
+      - name: Install
+        run: |
+          pip install Django
+          pip install -r requirements.txt || true
       - name: Make migrations
         run: python manage.py makemigrations accounts
       - name: Push migration
         run: |
-          git config user.name "Emmanuel"
-          git config user.email "emmanuel@geniop.com"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
           git add accounts/migrations/
-          git commit -m "auto migration" || echo "no change"
+          git commit -m "auto migration" || echo "nothing to commit"
           git push
