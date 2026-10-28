@@ -1,5 +1,6 @@
 name: Create Migration File
-on: workflow_dispatch
+on:
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -8,7 +9,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      - name: Install
+      - name: Install deps
         run: pip install -r requirements.txt
       - name: Make migrations
         run: python manage.py makemigrations accounts
@@ -17,5 +18,5 @@ jobs:
           git config user.name "Emmanuel"
           git config user.email "emmanuel@geniop.com"
           git add accounts/migrations/
-          git commit -m "auto migration" || echo "nothing"
+          git commit -m "auto migration" || echo "no change"
           git push
