@@ -218,3 +218,9 @@ def branch_compare(request):
         'error_msg': error_msg,  # Error if any
         'total_branches': my_branches.count(),  # Total branches
     })
+    
+def terms_view(request):
+    return render(request, 'home/terms.html')
+
+def privacy_view(request):
+    return render(request, 'home/privacy.html')
