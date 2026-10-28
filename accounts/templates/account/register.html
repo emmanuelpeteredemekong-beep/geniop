@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Register</h2>
+<form method="POST">
+  {% csrf_token %}
+  <input type="text" name="username" placeholder="Username" required><br><br>
+  <input type="email" name="email" placeholder="Email" required><br><br>
+  <input type="password" name="password" placeholder="Password" required><br><br>
+  
+  <div style="margin:15px 0;">
+    <input type="checkbox" name="agree_terms" id="agree" required>
+    <label for="agree">I agree to the <a href="/privacy-policy/" target="_blank">Privacy Policy</a> and Terms</label>
+  </div>
+  
+  <button type="submit">Register</button>
+</form>
+{% endblock %}
