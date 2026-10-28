@@ -1,0 +1,158 @@
+{% load static %}  <!-- Load static -->
+<!DOCTYPE html>  <!-- HTML5 -->
+<html>  <!-- HTML -->
+<head>  <!-- Head -->
+<meta charset="UTF-8">  <!-- UTF-8 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- Mobile friendly -->
+<title>Profile - Geniop</title>  <!-- Title -->
+<style>  /* Styles: professional and standard */
+body { font-family: Inter, sans-serif; background:#f9fafb; margin:0; }  /* Body */
+.header { background:#fff; padding:12px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; }  /* Header */
+.card { background:#fff; margin:10px; border-radius:12px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }  /* Card */
+.tabs { display:flex; background:#fff; border-bottom:1px solid #e5e7eb; }  /* Tabs */
+.tab { flex:1; text-align:center; padding:10px; cursor:pointer; color:#6b7280; }  /* Tab */
+.tab.active { color:#059669; border-bottom:2px solid #059669; font-weight:600; }  /* Active tab */
+.badge { padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600; }  /* Badge */
+.badge-green { background:#ecfdf5; color:#059669; }  /* Green badge */
+.badge-orange { background:#fffbeb; color:#d97706; }  /* Orange badge */
+.btn { background:#059669; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; }  /* Button */
+.advice-box { background:#f0fdf4; border:1px solid #bbf7d0; padding:12px; border-radius:8px; margin:10px 0; }  /* Advice box: little text box */
+.notification { background:#fff7ed; border:1px solid #fed7aa; padding:10px; border-radius:8px; margin:5px 0; }  /* Notification */
+.earnings-box { background:#111; color:#fff; padding:15px; border-radius:12px; }  /* Earnings box: dark */
+</style>  <!-- End styles -->
+</head>  <!-- End head -->
+<body>  <!-- Body -->
+
+<!-- Header -->
+<div class="header">  <!-- Header -->
+<span style="font-weight:800; color:#059669;">{{ profile.user.username }} - {{ profile.role }}</span>  <!-- Username and role -->
+<a href="/accounts/notifications/" style="color:#059669;">🔔 {{ notifications|length }} New</a>  <!-- Notifications link -->
+</div>  <!-- End header -->
+
+<!-- Profile Info Card -->
+<div class="card">  <!-- Profile info -->
+<h3>{{ profile.user.username }} {% if profile.is_verified %}✅{% endif %}</h3>  <!-- Username with verification -->
+<p>{{ profile.bio|default:"No bio yet" }}</p>  <!-- Bio -->
+<p>📍 {{ profile.location|default:"No location" }} | Privacy: {{ profile.privacy }}</p>  <!-- Location and privacy -->
+{% if can_access_business %}  <!-- If can access business: has branches first -->
+<span class="badge badge-green">Business Access Unlocked - Branches Found</span>  <!-- Business unlocked -->
+<a href="/accounts/branches/" style="margin-left:10px; color:#059669; font-weight:600;">Go to Business Account (Branches First)</a>  <!-- Branches first link: your rule -->
+{% else %}  <!-- No branches -->
+<span class="badge badge-orange">Create Branch First to Access Business</span>  <!-- Need branch -->
+<a href="/accounts/create-store/" style="margin-left:10px; color:#059669;">Create Store</a>  <!-- Create store -->
+{% endif %}  <!-- End can_access_business -->
+</div>  <!-- End profile info -->
+
+<!-- Affiliate Dashboard Inside Profile: Phase 3 + Affiliate requirement -->
+<div class="card">  <!-- Affiliate dashboard: inside profile -->
+<h3>💰 Affiliate Dashboard - Inside Profile</h3>  <!-- Title: inside profile -->
+<p><b>Your Referral Code:</b> {{ affiliate.code }}</p>  <!-- Referral code -->
+<p><b>Referral Link:</b> geniop.com/register/?ref={{ affiliate.code }}</p>  <!-- Referral link -->
+<p><b>Balance:</b> ₦{{ affiliate.balance|floatformat:0 }} - Straight to account, no minimum withdrawal</p>  <!-- Balance: no minimum -->
+<p><b>Total Earnings:</b> ₦{{ affiliate.total_earnings|floatformat:0 }}</p>  <!-- Total earnings -->
+<p><b>Referrals:</b> {{ affiliate.total_referrals }}/100 Target - {% if affiliate.is_unlimited %}✅ Unlimited Unlocked{% else %}Need {{ 100|add:"-"|add:affiliate.total_referrals }} more for unlimited{% endif %}</p>  <!-- Referrals: at least 100 -->
+<p><b>Stores Referred:</b> {{ affiliate.total_store_referrals }}</p>  <!-- Stores added -->
+<p><b>Product Links:</b> {{ affiliate.product_links_count }}/{% if affiliate.is_unlimited %}Unlimited{% else %}5 Max Free{% endif %} {% if not affiliate.can_create_product_link %} - <a href="/accounts/pay-1500/">Pay ₦1500 for Unlimited</a>{% endif %}</p>  <!-- Product links: 5 max free -->
+</div>  <!-- End affiliate dashboard -->
+
+<!-- Earnings Breakdown: from where which product sold more -->
+<div class="card">  <!-- Earnings breakdown -->
+<h4>📊 Earnings Breakdown - From Where</h4>  <!-- Title -->
+<div class="earnings-box">  <!-- Dark earnings box -->
+<p>Link 1 - My Referred Stores + My Link (60% of Geniop commission): ₦{{ total_store_earnings|floatformat:0 }}</p>  <!-- Link 1 earnings -->
+<p>Link 2 - General Product + My Link (40% of Geniop commission): ₦{{ total_general_earnings|floatformat:0 }}</p>  <!-- Link 2 earnings -->
+<p>Link 3 - Marketplace Access ₦1500 (30% = ₦450): ₦{{ total_access_earnings|floatformat:0 }}</p>  <!-- Link 3 earnings -->
+<hr style="border-color:#444;">
+<h3>Total: ₦{{ affiliate.balance|floatformat:0 }}</h3>  <!-- Total -->
+</div>  <!-- End earnings box -->
+
+<!-- Which Product Sold More: interactive -->
+{% if analytics.top_selling_product %}  <!-- If top product exists -->
+<div style="margin-top:10px; padding:10px; background:#f0fdf4; border-radius:8px;">  <!-- Top product box -->
+<b>🔥 Top Product Sold More:</b> {{ analytics.top_selling_product.product_name }} - {{ analytics.top_selling_product.sales }} sales - ₦{{ analytics.top_selling_product.earnings|floatformat:0 }}  <!-- Top product -->
+</div>  <!-- End top product -->
+{% endif %}  <!-- End if -->
+{% if analytics.worst_selling_product and analytics.worst_selling_product.sales == 0 %}  <!-- Worst product -->
+<div style="margin-top:5px; padding:10px; background:#fef2f2; border-radius:8px;">  <!-- Worst product box -->
+<b>⚠️ Worst Product:</b> {{ analytics.worst_selling_product.product_name }} - 0 sales - Try different promotion  <!-- Worst -->
+</div>  <!-- End worst -->
+{% endif %}  <!-- End if -->
+</div>  <!-- End earnings breakdown -->
+
+<!-- Advice Box: little text box that understands business logic -->
+{% for advice in advices %}  <!-- Loop advices: interactive system -->
+<div class="card">  <!-- Advice card -->
+<div class="advice-box">  <!-- Advice box styling -->
+<b>💡 {{ advice.title }}:</b><br>{{ advice.message }}  <!-- Advice message: understands data -->
+</div>  <!-- End advice box -->
+</div>  <!-- End advice card -->
+{% endfor %}  <!-- End advices loop -->
+
+<!-- Notifications: connected -->
+{% for notif in notifications %}  <!-- Loop notifications -->
+<div class="card">  <!-- Notification card -->
+<div class="notification">  <!-- Notification styling -->
+<b>{{ notif.title }}</b><br>{{ notif.message }}<br><small>{{ notif.created_at|timesince }} ago</small>  <!-- Notification details -->
+</div>  <!-- End notification -->
+</div>  <!-- End notification card -->
+{% endfor %}  <!-- End notifications loop -->
+
+<!-- Tabs: Posts + Affiliate Links + Earnings -->
+<div class="tabs">  <!-- Tabs bar -->
+<div class="tab active" onclick="showTab('posts')">My Posts (Home)</div>  <!-- Posts tab: home page posts stored in profile -->
+<div class="tab" onclick="showTab('links')">Product Links</div>  <!-- Product links tab -->
+<div class="tab" onclick="showTab('referrals')">Referrals ({{ affiliate.total_referrals }})</div>  <!-- Referrals tab -->
+</div>  <!-- End tabs -->
+
+<!-- My Posts: all posts in home page stored in profile -->
+<div id="posts" class="tab-content">  <!-- Posts content -->
+{% for post in my_posts %}  <!-- Loop my posts: all home page posts stored in profile -->
+<div class="card">  <!-- Post card -->
+<p>{{ post.caption }}</p>  <!-- Caption -->
+{% if post.image %}<img src="{{ post.image.url }}" style="width:100%; border-radius:8px;">{% endif %}  <!-- Image: you said image only for now, but we support text + image -->
+<small>{{ post.created_at|timesince }} ago</small>  <!-- Time -->
+</div>  <!-- End post card -->
+{% empty %}  <!-- No posts -->
+<div class="card"><p>No posts yet. Go to Home > What's happening in your market?</p></div>  <!-- Empty -->
+{% endfor %}  <!-- End posts loop -->
+</div>  <!-- End posts content -->
+
+<!-- Product Links: 5 max free -->
+<div id="links" class="tab-content" style="display:none;">  <!-- Links content -->
+{% for link in product_links %}  <!-- Loop product links -->
+<div class="card">  <!-- Link card -->
+<b>{{ link.product_name }}</b> - ₦{{ link.product_price|floatformat:0 }}<br>  <!-- Product name and price -->
+Link: {{ link.link }}<br>  <!-- Full affiliate link -->
+Clicks: {{ link.clicks }} | Sales: {{ link.sales }} | Earnings: ₦{{ link.earnings|floatformat:0 }}<br>  <!-- Stats: counts -->
+{% if link.is_from_referred_store %}<span class="badge badge-green">My Referred Store - 60% Commission</span>{% else %}<span class="badge badge-orange">General - 40% Commission</span>{% endif %}  <!-- Link 1 vs Link 2 -->
+</div>  <!-- End link card -->
+{% empty %}  <!-- No links -->
+<div class="card"><p>No product links yet. <a href="/accounts/create-product-link/">Get product link from marketplace</a> - Max 5 free, unlimited after ₦1500</p></div>  <!-- Empty -->
+{% endfor %}  <!-- End product links loop -->
+<a href="/accounts/create-product-link/" class="btn" style="margin:10px; display:inline-block;">+ Create Product Link</a>  <!-- Create link button -->
+</div>  <!-- End links content -->
+
+<!-- Referrals: counts affiliate referrals and stores he added -->
+<div id="referrals" class="tab-content" style="display:none;">  <!-- Referrals content -->
+{% for ref in referrals %}  <!-- Loop referrals -->
+<div class="card">  <!-- Referral card -->
+<b>{{ ref.referred_user.username }}</b> - Joined {{ ref.created_at|timesince }} ago<br>  <!-- Referral user -->
+{% if ref.has_paid_1500 %}<span class="badge badge-green">Paid ₦1500 - You earned ₦450</span>{% else %}<span class="badge badge-orange">Not paid 1500 yet</span>{% endif %}  <!-- Paid 1500? -->
+{% if ref.store_created %}<br><span class="badge badge-green">Store Created: {{ ref.store.name }}</span>{% endif %}  <!-- Store created? -->
+</div>  <!-- End referral card -->
+{% empty %}  <!-- No referrals -->
+<div class="card"><p>No referrals yet. Share your link: geniop.com/register/?ref={{ affiliate.code }} - Need 100 referrals for unlimited</p></div>  <!-- Empty -->
+{% endfor %}  <!-- End referrals loop -->
+</div>  <!-- End referrals content -->
+
+<script>  // JS for tabs: simple and standard
+function showTab(tabName) {  // Show tab function
+  document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');  // Hide all contents
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));  // Remove active
+  document.getElementById(tabName).style.display = 'block';  // Show selected tab
+  event.target.classList.add('active');  // Add active
+}
+</script>  <!-- End script -->
+
+</body>  <!-- End body -->
+</html>  <!-- End html -->
