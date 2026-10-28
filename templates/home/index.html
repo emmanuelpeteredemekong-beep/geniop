@@ -1,196 +1,217 @@
-{% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Geniop - Market Intelligence</title>
-<script src="https://checkout.flutterwave.com/v3.js"></script>
-<style>
-body { font-family: Inter, sans-serif; background:#f9fafb; margin:0; }
-.header { background:#fff; padding:12px 16px; border-bottom:1px solid #eee; position:sticky; top:0; display:flex; justify-content:space-between; }
-.brand { font-weight:800; color:#059669; font-size:20px; }
-.tabs { display:flex; background:#fff; border-bottom:1px solid #eee; }
-.tab { flex:1; text-align:center; padding:12px; text-decoration:none; color:#6b7280; font-weight:600; }
-.tab.active { color:#059669; border-bottom:2px solid #059669; }
-.card { background:#fff; margin:10px; border-radius:12px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
-.free { border-left:4px solid #059669; }
-.locked { border-left:4px solid #f59e0b; opacity:0.9; }
-.badge-free { background:#ecfdf5; color:#059669; padding:2px 8px; border-radius:999px; font-size:12px; }
-.badge-locked { background:#fffbeb; color:#d97706; padding:2px 8px; border-radius:999px; font-size:12px; }
-.btn-pay { background:#059669; color:#fff; border:none; padding:12px; width:100%; border-radius:10px; font-weight:700; margin-top:10px; }
-.insight-box { background:#f0fdf4; border:1px solid #bbf7d0; padding:12px; border-radius:10px; margin:10px; }
-.quality-box { background:#fff7ed; border:1px solid #fed7aa; padding:12px; border-radius:10px; margin:10px; font-size:13px; }
-.filter-bar { display:flex; gap:8px; padding:10px; background:#fff; }
-</style>
-</head>
-<body>
-<div class="header">
-<span class="brand">Geniop</span>
-<span>{{ request.user.username }}</span>
-</div>
+{% load static %}  <!-- Load Django static files -->
+<!DOCTYPE html>  <!-- HTML5 doctype declaration -->
+<html lang="en">  <!-- HTML root with language -->
+<head>  <!-- Head section start -->
+<meta charset="UTF-8">  <!-- UTF-8 encoding -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- Mobile responsive: phone friendly -->
+<title>Geniop - Market Intelligence</title>  <!-- Page title -->
+<script src="https://checkout.flutterwave.com/v3.js"></script>  <!-- Flutterwave payment gateway -->
+<style>  /* Main stylesheet: professional and standard */
+body { font-family: Inter, sans-serif; background:#f9fafb; margin:0; color:#111; }  /* Body: light background */
+.header { background:#fff; padding:12px 16px; border-bottom:1px solid #e5e7eb; display:flex; justify-content:space-between; align-items:center; }  /* Header bar */
+.brand { font-weight:800; color:#059669; font-size:20px; }  /* Brand: Geniop green */
+.tabs { display:flex; background:#fff; border-bottom:1px solid #e5e7eb; position:sticky; top:0; z-index:10; }  /* Tabs: sticky navigation */
+.tab { flex:1; text-align:center; padding:12px; text-decoration:none; color:#6b7280; font-size:14px; }  /* Tab link */
+.tab.active { color:#059669; border-bottom:2px solid #059669; font-weight:600; }  /* Active tab: green underline */
+.card { background:#fff; margin:10px; border-radius:12px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }  /* Card container */
+.free { border-left:4px solid #059669; }  /* Free feature: green left border */
+.locked { border-left:4px solid #f59e0b; opacity:0.95; }  /* Locked feature: orange border */
+.badge-free { background:#ecfdf5; color:#059669; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600; }  /* Free badge */
+.badge-locked { background:#fffbeb; color:#d97706; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:600; }  /* Locked badge */
+.btn-pay { background:#059669; color:#fff; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; }  /* Pay button */
+.insight-box { background:#f0fdf4; border:1px solid #bbf7d0; padding:12px; border-radius:8px; margin-top:10px; }  /* Insight advice box */
+.quality-box { background:#fff7ed; border:1px solid #fed7aa; padding:12px; border-radius:8px; margin-top:10px; }  /* Data quality report box */
+.filter-bar { display:flex; gap:8px; padding:10px; background:#fff; flex-wrap:wrap; }  /* Filter bar: date range */
+textarea { width:100%; padding:12px; border-radius:12px; border:1px solid #d1d5db; min-height:70px; font-family:inherit; resize:none; }  /* Textarea for post */
+input[type="file"] { margin-top:8px; font-size:14px; }  /* File input */
+</style>  <!-- End styles -->
+</head>  <!-- End head -->
+<body>  <!-- Body start -->
 
-<div class="tabs">
-<a href="?tab=foryou" class="tab {% if tab == 'foryou' %}active{% endif %}">For You</a>
-<a href="?tab=following" class="tab {% if tab == 'following' %}active{% endif %}">Following</a>
-<a href="?tab=sales" class="tab {% if tab == 'sales' %}active{% endif %}">Sales</a>
-</div>
+<!-- Header: Brand and User -->
+<div class="header">  <!-- Header container -->
+<span class="brand">Geniop</span>  <!-- Brand name -->
+<span style="font-size:14px; color:#374151;">{{ request.user.username }}</span>  <!-- Logged in user -->
+</div>  <!-- End header -->
 
-{% if tab == 'sales' %}
-    <div class="card">
-    <form method="post" enctype="multipart/form-data" action="/upload-report/">
-    {% csrf_token %}
-    <input type="file" name="file" accept=".csv,.xlsx" required>
-    <button type="submit" style="background:#059669; color:#fff; border:none; padding:8px 12px; border-radius:8px; margin-top:8px;">Upload Sales Report</button>
-    </form>
-    </div>
+<!-- Navigation Tabs: Phase 2 requirement - Home layout and navigation -->
+<div class="tabs">  <!-- Tabs bar -->
+<a href="?tab=foryou" class="tab {% if tab == 'foryou' %}active{% endif %}">For You</a>  <!-- For You feed tab -->
+<a href="?tab=following" class="tab {% if tab == 'following' %}active{% endif %}">Following</a>  <!-- Following feed tab -->
+<a href="?tab=sales" class="tab {% if tab == 'sales' %}active{% endif %}">Sales Report</a>  <!-- Sales report tab -->
+</div>  <!-- End tabs -->
 
-    {% if error %}
-    <div class="card" style="color:red;">{{ error }}</div>
-    {% endif %}
+{% if tab == 'sales' %}  <!-- If Sales tab selected -->
+<!-- Phase 2: Report Upload Card -->
+<div class="card">  <!-- Upload card -->
+<h3 style="margin-top:0;">Upload Sales Report</h3>  <!-- Title -->
+<form method="post" enctype="multipart/form-data">  <!-- Upload form: CSV and XLSX support -->
+{% csrf_token %}  <!-- CSRF protection: Django security -->
+<input type="file" name="file" accept=".csv,.xlsx" required>  <!-- File input: accepts CSV and Excel -->
+<button type="submit" style="background:#111; color:#fff; border:none; padding:8px 16px; border-radius:8px; margin-left:8px;">Analyze</button>  <!-- Submit button -->
+</form>  <!-- End form -->
+</div>  <!-- End upload card -->
 
-    {% if count %}
-    <div class="filter-bar">
-    <form method="get">
-    <input type="hidden" name="tab" value="sales">
-    <input type="date" name="start_date" value="{{ start_date }}">
-    <input type="date" name="end_date" value="{{ end_date }}">
-    <button type="submit" style="background:#111; color:#fff; border:none; padding:6px 10px; border-radius:6px;">Filter (Free)</button>
-    </form>
-    </div>
+{% if error %}  <!-- If error exists -->
+<div class="card" style="color:red;">{{ error }}</div>  <!-- Error message card -->
+{% endif %}  <!-- End error -->
 
-    <div class="card" style="text-align:center; font-weight:600;">{{ label }}</div>
+{% if count %}  <!-- If count exists: show date filter -->
+<div class="filter-bar">  <!-- Date filter bar -->
+<form method="get">  <!-- GET form for filtering -->
+<input type="hidden" name="tab" value="sales">  <!-- Keep sales tab -->
+<input type="date" name="start_date" value="{{ start_date }}">  <!-- Start date filter -->
+<input type="date" name="end_date" value="{{ end_date }}">  <!-- End date filter -->
+<button type="submit" style="background:#111; color:#fff; border:none; padding:6px 12px; border-radius:6px;">Filter</button>  <!-- Filter button -->
+</form>  <!-- End filter form -->
+</div>  <!-- End filter bar -->
+{% endif %}  <!-- End count -->
 
-    {% if issues %}
-    <div class="quality-box">
-    <b>Data Quality Report - Called Out:</b><br>
-    Initial: {{ initial }} rows → Final: {{ count }} valid ({{ removed }} removed)<br>
-    {% for issue in issues %}
-    • {{ issue }}<br>
-    {% endfor %}
-    {% if returns_count > 0 %}
-    <b>Returns:</b> {{ returns_count }} sales = {{ returns_total }}<br>
-    <b>Gross:</b> {{ gross_revenue|floatformat:0 }} | <b>Net:</b> {{ net_revenue|floatformat:0 }}
-    {% endif %}
-    </div>
-    {% endif %}
+<!-- Center Summary: Optional count display -->
+{% if count %}  <!-- If data exists -->
+<div class="card" style="text-align:center; font-weight:600;">Processed {{ count }} valid rows</div>  <!-- Count display -->
+{% endif %}  <!-- End count -->
 
-    <div class="insight-box">
-    <b>Insight Advice:</b><br>{{ insight }}
-    </div>
+{% if issues %}  <!-- If data quality issues exist -->
+<div class="card">  <!-- Quality report card -->
+<div class="quality-box">  <!-- Quality box styling -->
+<b>Data Quality Report - Called Out:</b><br>  <!-- Title -->
+Initial: {{ initial }} rows → Final: {{ count }} valid<br><br>  <!-- Initial to final count -->
+{% for issue in issues %}  <!-- Loop through issues -->
+• {{ issue }}<br>  <!-- Issue item -->
+{% endfor %}  <!-- End issues loop -->
+{% if returns_count > 0 %}  <!-- If returns exist -->
+<br><b>Returns:</b> {{ returns_count }} sales = {{ returns_total }}<br>  <!-- Returns summary -->
+<b>Gross:</b> {{ gross_revenue|floatformat:0 }}<br>  <!-- Gross revenue -->
+{% endif %}  <!-- End returns -->
+</div>  <!-- End quality box -->
+<div class="insight-box">  <!-- Insight advice box -->
+<b>Insight Advice:</b><br>{{ insight }}  <!-- AI insight advice -->
+</div>  <!-- End insight box -->
+</div>  <!-- End quality card -->
+{% endif %}  <!-- End issues -->
 
-    <!-- 1. Revenue FREE -->
-    <div class="card free">
-    <span class="badge-free">FREE</span>
-    <h3>Total Revenue (Net)</h3>
-    <h2>₦{{ total_revenue|floatformat:0 }}</h2>
-    <small>Gross ₦{{ gross_revenue|floatformat:0 }} - Returns ₦{{ returns_total|floatformat:0 }}</small>
-    </div>
+<!-- 1. Revenue FREE: Always visible -->
+<div class="card free">  <!-- Revenue card: free feature -->
+<span class="badge-free">FREE</span>  <!-- Free badge -->
+<h3>Total Revenue (Net)</h3>  <!-- Title -->
+<h2>₦{{ total_revenue|floatformat:0 }}</h2>  <!-- Net revenue display -->
+<small>Gross ₦{{ gross_revenue|floatformat:0 }} - Returns ₦{{ returns_total|floatformat:0 }}</small>  <!-- Gross breakdown -->
+</div>  <!-- End revenue card -->
 
-    <!-- 2. Profit FREE -->
-    <div class="card free">
-    <span class="badge-free">FREE</span>
-    <h3>Total Profit</h3>
-    <h2>₦{{ total_profit|floatformat:0 }}</h2>
-    <small>Net Revenue - Expenses</small>
-    </div>
+<!-- 2. Profit FREE: Always visible -->
+<div class="card free">  <!-- Profit card: free -->
+<span class="badge-free">FREE</span>  <!-- Free badge -->
+<h3>Total Profit</h3>  <!-- Title -->
+<h2>₦{{ total_profit|floatformat:0 }}</h2>  <!-- Profit -->
+<small>Net Revenue - Expenses</small>  <!-- Explanation -->
+</div>  <!-- End profit card -->
 
-    <!-- 3. Expenses LOCKED -->
-    <div class="card locked">
-    <span class="badge-locked">LOCKED - Pay ₦{{ price }} to unlock</span>
-    <h3>Total Expenses</h3>
-    {% if last_report.is_paid %}
-    <h2>₦{{ total_expense|floatformat:0 }}</h2>
-    {% else %}
-    <h2>₦****</h2>
-    <button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} with Flutterwave to unlock</button>
-    {% endif %}
-    </div>
+<!-- 3. Expenses LOCKED: Pay to unlock -->
+<div class="card locked">  <!-- Expenses card: locked -->
+<span class="badge-locked">LOCKED - Pay ₦{{ price }} to Unlock</span>  <!-- Locked badge with price -->
+<h3>Total Expenses</h3>  <!-- Title -->
+{% if last_report.is_paid %}  <!-- If paid -->
+<h2>₦{{ total_expense|floatformat:0 }}</h2>  <!-- Show expense -->
+{% else %}  <!-- If not paid -->
+<h2>₦****</h2>  <!-- Hidden -->
+<button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} to Unlock</button>  <!-- Pay button -->
+{% endif %}  <!-- End paid check -->
+</div>  <!-- End expenses card -->
 
-    <!-- 4. Best/Worst LOCKED -->
-    <div class="card locked">
-    <span class="badge-locked">LOCKED</span>
-    <h3>Best & Worst Products</h3>
-    {% if last_report.is_paid %}
-    <p>Best: {{ best_product.product }} - ₦{{ best_product.total|floatformat:0 }}</p>
-    <p>Worst: {{ worst_product.product }} - ₦{{ worst_product.total|floatformat:0 }}</p>
-    {% else %}
-    <p>Best: **** - ₦****</p>
-    <p>Worst: **** - ₦****</p>
-    <button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} with Flutterwave to unlock</button>
-    {% endif %}
-    </div>
+<!-- 4. Best/Worst Products LOCKED -->
+<div class="card locked">  <!-- Best/Worst card -->
+<span class="badge-locked">LOCKED</span>  <!-- Locked badge -->
+<h3>Best & Worst Products</h3>  <!-- Title -->
+{% if last_report.is_paid %}  <!-- If paid -->
+<p>Best: {{ best_product.product }} - ₦{{ best_product.total|floatformat:0 }}</p>  <!-- Best product -->
+<p>Worst: {{ worst_product.product }} - ₦{{ worst_product.total|floatformat:0 }}</p>  <!-- Worst product -->
+{% else %}  <!-- If not paid -->
+<p>Best: **** - ₦****</p>  <!-- Hidden -->
+<p>Worst: **** - ₦****</p>  <!-- Hidden -->
+<button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} to Unlock</button>  <!-- Pay -->
+{% endif %}  <!-- End paid -->
+</div>  <!-- End best/worst card -->
 
-    <!-- 5. Branch Comparison LOCKED -->
-    <div class="card locked">
-    <span class="badge-locked">LOCKED - Branch Comparison</span>
-    <h3>Branch Comparison + Growth</h3>
-    {% if last_report.is_paid %}
-    {% for b in branches %}
-    <p>{{ b.branch }}: ₦{{ b.total|floatformat:0 }}</p>
-    {% endfor %}
-    {% else %}
-    {% for b in branches %}
-    <p>{{ b.branch }}: ₦****</p>
-    {% endfor %}
-    <button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} with Flutterwave to unlock</button>
-    {% endif %}
-    </div>
+<!-- 5. Branch Comparison LOCKED: Links to /compare/ -->
+<div class="card locked">  <!-- Branch comparison card -->
+<span class="badge-locked">LOCKED - Branch Comparison</span>  <!-- Badge -->
+<h3>Branch Comparison + Growth</h3>  <!-- Title -->
+{% if last_report.is_paid %}  <!-- If paid -->
+{% for b in branches %}  <!-- Loop branches -->
+<p>{{ b.branch }}: ₦{{ b.total|floatformat:0 }}</p>  <!-- Branch total -->
+{% endfor %}  <!-- End loop -->
+<a href="/compare/" style="color:#059669; font-weight:600;">Go to Professional Compare (10 max)</a>  <!-- Link to compare page -->
+{% else %}  <!-- If not paid -->
+{% for b in branches %}  <!-- Loop branches hidden -->
+<p>{{ b.branch }}: ₦****</p>  <!-- Hidden -->
+{% endfor %}  <!-- End loop -->
+<button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} to Unlock</button>  <!-- Pay -->
+{% endif %}  <!-- End paid -->
+</div>  <!-- End branch card -->
 
-    <script>
-    function payNow() {
-        FlutterwaveCheckout({
-            public_key: "FLWPUBK-TEST-xxxxxxxxxxxxxxxx-X", // REPLACE with your key from dashboard.flutterwave.com
-            tx_ref: "GENIOP-{{ count }}-" + Date.now(),
-            amount: {{ price }},
-            currency: "NGN",
-            customer: { email: "{{ request.user.email }}", name: "{{ request.user.username }}" },
-            callback: function(data) {
-                // Call backend to mark as paid
-                fetch('/mark-paid/{{ last_report.id }}/').then(()=>location.reload());
-            },
-            customizations: { title: "Geniop Unlock", description: "Unlock full report for {{ count }} sales" }
-        });
-    }
-    </script>
+<!-- Payment Script: Flutterwave -->
+<script>  // Payment JS
+function payNow() {  // Pay now function
+FlutterwaveCheckout({  // Flutterwave checkout
+public_key: "FLWPUBK-TEST-xxxxxxxxxxxxxxxxxxxx-X",  // Public key: replace with live key in production
+tx_ref: "GENIOP-{{ count }}-" + Date.now(),  // Transaction reference: unique
+amount: {{ price }},  // Amount to pay
+currency: "NGN",  // Currency: Naira
+customer: { email: "{{ request.user.email }}" },  // Customer email
+callback: function(data) {  // On success callback
+// Call backend to mark as paid
+fetch('/mark-paid/{{ last_report.id }}/')  // Mark paid endpoint
+.then(() => location.reload());  // Reload page after payment
+},
+customizations: { title: "Geniop Unlock", description: "Unlock full market insights" }  // Customization
+});
+}
+</script>  <!-- End payment script -->
 
-    {% endif %}
+{% else %}  <!-- Else: For You / Following Feed Tab -->
+<!-- Phase 2: "What's happening in your market?" - ALWAYS VISIBLE, top of feed -->
+<div class="card">  <!-- Post creation card -->
+<h4 style="margin-top:0;">What's happening in your market?</h4>  <!-- Phase 2 required title: fixes missing box issue -->
+<form method="post" enctype="multipart/form-data">  <!-- Post form -->
+{% csrf_token %}  <!-- CSRF protection -->
+<textarea name="caption" placeholder="What's happening in your market?" required></textarea>  <!-- Full placeholder: fixed from "What's sellin" -->
+<input type="file" name="image" accept="image/*">  <!-- Optional image upload -->
+<button type="submit" style="background:#059669; color:#fff; border:none; padding:10px 16px; border-radius:8px; margin-top:10px; width:100%; font-weight:600;">Post to Market</button>  <!-- Post button -->
+</form>  <!-- End post form -->
+</div>  <!-- End post creation card -->
 
-{% else %}
-    <!-- For You / Following Feed -->
-    <div class="card">
-    <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <textarea name="caption" placeholder="What's selling in your market today?" style="width:100%; border:1px solid #eee; border-radius:10px; padding:10px;"></textarea>
-    <input type="file" name="image" accept="image/*" required style="margin-top:8px;">
-    <button type="submit" style="background:#059669; color:#fff; border:none; padding:10px; width:100%; border-radius:10px; margin-top:8px; font-weight:700;">Post</button>
-    </form>
-    </div>
-    {% for post in posts %}
-    <div class="card">
-    <b>{{ post.user.username }}</b> <small>{{ post.location }}</small>
-    <p>{{ post.caption }}</p>
-    {% if post.image %}
-    <img src="{{ post.image.url }}" style="width:100%; border-radius:10px; margin-top:8px;">
-    {% endif %}
-    </div>
-    
-    {% endfor %}
-        {% if max_rows %}
-<div style="margin-top:20px; padding:15px; background:#1a1a1a; border:1px solid #444; border-radius:12px; color:white;">
-    <h4>📊 Branch Rows:</h4>
-    {% for name, count in branch_rows.items %}
-        <p><strong>{{ name }}:</strong> {{ count }} rows</p>
-    {% endfor %}
-    <hr style="border-color:#444;">
-    <h3>Max Rows: {{ max_rows }}</h3>
-    <h3 style="color:#4CAF50;">Price: ₦{{ price }}</h3>
-    <small>Based on max ({{ max_rows }}), not sum. Eg 30+19+101 = 150, we use 101 for pricing.</small>
-</div>
-{% endif %}
-{% endif %}
-    
-<div id="errorBox" style="display:none"></div>
-<div id="profitBox"></div>
-<script src="{% static 'home/js/home.js' %}"></script>
-</body>
-  </html>
+<!-- Phase 2: Basic Home Feed: shows posts -->
+{% for post in posts %}  <!-- Loop posts: feed -->
+<div class="card">  <!-- Post card -->
+<b>{{ post.user.username }}</b> <small style="color:#6b7280;">{{ post.location|default:"" }} • {{ post.created_at|timesince }} ago</small>  <!-- User and time -->
+<p style="margin:8px 0;">{{ post.caption }}</p>  <!-- Caption -->
+{% if post.image %}  <!-- If image exists -->
+<img src="{{ post.image.url }}" style="width:100%; border-radius:12px; margin-top:8px;">  <!-- Post image -->
+{% endif %}  <!-- End image check -->
+</div>  <!-- End post card -->
+{% empty %}  <!-- If no posts -->
+<div class="card" style="text-align:center; color:#6b7280;"><p>No market updates yet. Be the first to post what's happening in your market!</p></div>  <!-- Empty state -->
+{% endfor %}  <!-- End posts loop -->
+
+{% endif %}  <!-- End if sales / else feed -->
+
+<!-- Common: Branch Rows Summary for pricing (from compare) - only if exists -->
+{% if max_rows %}  <!-- If branch compare results exist -->
+<div style="margin:10px; padding:15px; background:#111; color:#fff; border-radius:12px;">  <!-- Dark summary box -->
+<h4>📊 Branch Rows:</h4>  <!-- Title -->
+{% for name, count in branch_rows.items %}  <!-- Loop branch rows -->
+<p><strong>{{ name }}:</strong> {{ count }} rows</p>  <!-- Branch row count -->
+{% endfor %}  <!-- End loop -->
+<hr style="border-color:#444; margin:12px 0;">  <!-- Divider -->
+<h3>Max Rows: {{ max_rows }}</h3>  <!-- Max rows -->
+<h3 style="color:#4CAF50;">Price: ₦{{ price }}</h3>  <!-- Price based on max -->
+<small>Based on max ({{ max_rows }}), not sum. Eg 300k rows = ₦300k cap, not 900k</small>  <!-- Pricing explanation -->
+</div>  <!-- End summary box -->
+{% endif %}  <!-- End max_rows -->
+
+<div id="errorBox" style="display:none"></div>  <!-- Error box for JS: hidden -->
+<div id="profitBox"></div>  <!-- Profit box for JS -->
+<script src="{% static 'home/js/home.js' %}"></script>  <!-- Home JS: handles extra interactions -->
+</body>  <!-- End body -->
+</html>  <!-- End html -->
