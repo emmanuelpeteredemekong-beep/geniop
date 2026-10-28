@@ -1,0 +1,32 @@
+<!-- compare.html - Professional Branch Compare: 10 max per compare, unlimited total branches -->
+<!-- This file is new, does not delete your important index.html -->
+
+<h2>Compare Branches</h2> <!-- Page title -->
+
+<!-- Error display: shows if user uploads >10 files or 0 files -->
+{% if error_msg %}
+  <p style="color:red; border:1px solid red; padding:10px;"><b>{{ error_msg }}</b></p> <!-- Red error box -->
+{% endif %}
+
+<!-- Upload form: must have enctype for file upload, CSRF for Django security -->
+<form method="post" enctype="multipart/form-data" id="compareForm"> <!-- Form start -->
+  {% csrf_token %} <!-- Security token: Django requires this for POST -->
+
+  <p><b>Select up to 10 branch files (CSV):</b></p> <!-- Instruction -->
+
+  {% for branch in my_branches %}
+    <!-- Loop all user branches: unlimited total, but JS limits to 10 per compare -->
+    <div style="border:1px solid #ddd; padding:8px; margin:5px;"> <!-- Branch row box -->
+      <label>{{ branch.name }}:</label> <!-- Show branch name from Store model -->
+      <input type="file" name="branch_{{ branch.id }}_file" accept=".csv" class="branch-file"> <!-- File input: name matches views.py -->
+    </div>
+  {% empty %}
+    <!-- No branches: tell user to create Store in admin -->
+    <p>No branches found. Create Store in Django Admin.</p>
+  {% endfor %}
+
+  <p id="countInfo">Selected: 0 / 10</p> <!-- Live counter: JS updates this -->
+  <button type="submit">Compare Selected</button> <!-- Submit button -->
+</form>
+
+<!-- JS: Professional live validation - prevents >10 selection before server -->
