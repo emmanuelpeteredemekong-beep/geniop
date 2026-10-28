@@ -1,179 +1,197 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from .models import Post, SalesReport, get_price
+from .models import Post, QuickSalesReport, get_price
 import csv
 import re
+import io
 from io import TextIOWrapper
+from django.db.models import Q
+from accounts.models import Store
 
+# Function to clean and validate rows from CSV
 def clean_data(rows):
-    issues = []
-    initial = len(rows)
-    normalized = []
+    issues = []  # List to store errors
+    initial = len(rows)  # Initial count of rows
+    normalized = []  # Cleaned rows
+    # Loop through rows with index starting at 2 (for Excel row number)
     for idx, r in enumerate(rows, start=2):
-        if not r:
-            continue
-        new_r = {}
+        if not r:  # If row is empty
+            continue  # Skip it
+        new_r = {}  # New cleaned row
+        # Loop through key, value in row
         for k, v in r.items():
-            if k is None:
-                continue
-            key = str(k).lower().strip().replace(' ', '_')
-            if isinstance(v, str):
-                v = v.strip()
-            new_r[key] = v
+            if k is None:  # If key is None
+                continue  # Skip
+            key = str(k).lower().strip().replace(' ', '_')  # Normalize key to lowercase
+            if isinstance(v, str):  # If value is string
+                v = v.strip()  # Remove spaces
+            new_r[key] = v  # Add to new row
+        # Check if row is completely empty
         if not any(v not in [None, '', ' '] for v in new_r.values()):
-            issues.append(f"Row {idx}: Empty row removed")
-            continue
-        new_r['_row_num'] = idx
-        normalized.append(new_r)
+            issues.append(f"Row {idx}: Empty row")  # Add issue
+            continue  # Skip
+        new_r['_row_num'] = idx  # Keep original row number for error reporting
+        normalized.append(new_r)  # Add to normalized list
 
-    cleaned = []
-    returns_count = 0
-    returns_total = 0.0
-    gross_revenue = 0.0
-    
+    cleaned = []  # Final cleaned list
+    returns_count = 0  # Count of returns (negative amounts)
+    returns_total = 0.0  # Total of returns
+    gross_revenue = 0.0  # Total gross
+
+    # Loop through normalized rows
     for row in normalized:
-        row_num = row.pop('_row_num')
-        raw_amount = row.get('amount')
-        if raw_amount in [None, '']:
-            issues.append(f"Row {row_num}: Missing amount")
-            continue
-        raw_str = str(raw_amount).strip()
-        cleaned_str = re.sub(r'[^0-9.\-]', '', raw_str)
-        if cleaned_str in ['', '.', '-', '-.', '.-']:
-            issues.append(f"Row {row_num}: Invalid amount '{raw_amount}'")
+        row_num = row.pop('_row_num')  # Get row number
+        raw_amount = row.get('amount')  # Get amount field
+        if raw_amount in [None, '']:  # If amount missing
+            issues.append(f"Row {row_num}: Missing amount")  # Add issue
+            continue  # Skip
+        raw_str = str(raw_amount).strip()  # Convert to string
+        cleaned_str = re.sub(r'[^0-9.\-]', '', raw_str)  # Remove non-numeric chars except . and -
+        if cleaned_str in ['', '.', '-', '-.']:  # If cleaned is invalid
+            issues.append(f"Row {row_num}: Invalid amount")  # Add issue
             continue
         try:
-            is_negative = cleaned_str.startswith('-')
-            cleaned_str = cleaned_str.replace('-', '')
-            parts = cleaned_str.split('.')
-            if len(parts) > 2:
-                cleaned_str = parts[0] + '.' + ''.join(parts[1:])
-            amt = float(cleaned_str)
-            if is_negative:
-                amt = -amt
+            is_negative = cleaned_str.startswith('-')  # Check if negative
+            cleaned_str = cleaned_str.replace('-', '')  # Remove dash for parsing
+            parts = cleaned_str.split('.')  # Split by dot
+            if len(parts) > 2:  # If more than one dot
+                cleaned_str = parts[0] + '.' + ''.join(parts[1:])  # Fix dots
+            amt = float(cleaned_str)  # Convert to float
+            if is_negative:  # If was negative
+                amt = -amt  # Make negative again
         except:
-            issues.append(f"Row {row_num}: Could not parse amount '{raw_amount}'")
+            issues.append(f"Row {row_num}: Could not parse amount")  # Add issue
             continue
 
-        if amt < 0:
-            returns_count += 1
-            returns_total += amt
-            issues.append(f"Row {row_num}: Return/Refund detected: {amt}")
+        if amt < 0:  # If amount is negative (return)
+            returns_count += 1  # Increase return count
+            returns_total += amt  # Add to return total
+            issues.append(f"Row {row_num}: Return detected ({amt})")  # Log return
 
-        gross_revenue += amt
-        row['amount'] = amt
-        cleaned.append(row)
+        gross_revenue += amt  # Add to gross
+        row['amount'] = amt  # Update row with cleaned amount
+        cleaned.append(row)  # Add to cleaned
 
+    # Return cleaned data and stats
     return cleaned, issues, initial, returns_count, returns_total, gross_revenue
 
-@login_required
-def home_view(request):
-    reports = SalesReport.objects.filter(user=request.user).order_by('-created_at')
-    if request.method == 'POST' and request.FILES.get('file'):
-        uploaded_file = request.FILES['file']
-        rows = []
-        try:
-            # CSV ONLY
-            file_data = TextIOWrapper(uploaded_file.file, encoding='utf-8')
-            reader = csv.DictReader(file_data)
-            rows = list(reader)
-            cleaned, issues, initial, returns_count, returns_total, gross_revenue = clean_data(rows)
-        except Exception as e:
-            issues = [str(e)]
-            cleaned = []
-            initial = returns_count = 0
-            returns_total = gross_revenue = 0.0
-
-        context = {
-            'reports': reports,
-            'cleaned_data': cleaned,
-            'issues': issues,
-            'initial': initial,
-            'returns_count': returns_count,
-            'returns_total': returns_total,
-            'gross_revenue': gross_revenue,
-        }
-        return render(request, 'home/index.html', context)
-
-    return render(request, 'home/index.html', {'reports': reports})
-
-import csv
-import io
-from accounts.models import Store
-from django.db.models import Q
-
+# Parse CSV file for branch compare (CSV only, keep -50 as return)
 def parse_csv_file(file):
-    # Read CSV like before, keep -50 as return
+    # Read file as text
     text = file.read().decode('utf-8')
-    file.seek(0)
-    reader = csv.DictReader(io.StringIO(text))
-    
-    total_sales = 0
-    total_returns = 0
-    total_rows = 0
-    
+    file.seek(0)  # Reset file pointer
+    reader = csv.DictReader(io.StringIO(text))  # Read CSV
+
+    total_sales = 0  # Total sales
+    total_returns = 0  # Total returns
+    total_rows = 0  # Row count
+
+    # Loop through each row
     for row in reader:
         try:
-            # find amount column - check 'amount', 'total', 'price', last column
-            amount = None
-            for key in ['amount', 'total', 'price', 'Amount', 'TOTAL']:
-                if key in row and row[key]:
-                    amount = float(row[key])
+            amount = None  # Amount to find
+            # Check common amount column names
+            for key in ['amount', 'total', 'price', 'sales']:
+                if key in row and row[key]:  # If key exists and has value
+                    amount = float(row[key])  # Parse amount
                     break
-            if amount is None:
-                # take last value
-                last_val = list(row.values())[-1]
-                amount = float(last_val)
-            
-            total_sales += amount
-            total_rows += 1
-            if amount < 0:  # keeps -50 as return
-                total_returns += amount
+            if amount is None:  # If no amount column found
+                last_val = list(row.values())[-1]  # Take last value
+                amount = float(last_val)  # Parse it
+
+            total_sales += amount  # Add to sales
+            total_rows += 1  # Increase row count
+            if amount < 0:  # If negative, it's return
+                total_returns += amount  # Add to returns
         except:
-            continue
-    
-        return total_sales, total_returns, total_rows
+            continue  # Skip bad rows
 
+    # Return totals
+    return total_sales, total_returns, total_rows
+
+# Home view - main page with report upload
+@login_required  # Must be logged in
+def home_view(request):
+    reports = QuickSalesReport.objects.filter(user=request.user)  # Get user's reports
+    if request.method == 'POST' and request.FILES.get('file'):  # If file uploaded
+        uploaded_file = request.FILES['file']  # Get file
+        rows = []  # Empty rows list
+        try:
+            file_data = TextIOWrapper(uploaded_file, encoding='utf-8')  # Wrap file
+            reader = csv.DictReader(file_data)  # Read CSV
+            rows = list(reader)  # Convert to list
+            cleaned, issues, initial, returns_count, returns_total, gross_revenue = clean_data(rows)  # Clean data
+        except Exception as e:  # If error
+            issues = [str(e)]  # Error as issue
+            cleaned = []  # No cleaned data
+            initial = returns_count = 0  # Zero counts
+            returns_total = gross_revenue = 0  # Zero totals
+
+        # Use get_price from models.py for pricing
+        price = get_price(initial)  # Calculate price based on initial count
+
+        # Save result only, file not saved (for privacy)
+        QuickSalesReport.objects.create(
+            user=request.user,  # Current user
+            total_sales=gross_revenue,  # Save gross
+            total_expense=abs(returns_total),  # Save returns as expense
+            profit=gross_revenue + returns_total,  # Profit = gross + returns (returns negative)
+            profit_margin=0,  # Will calculate later
+            record_count=initial,  # Number of rows
+            price_charged=price,  # Price from get_price
+        )
+
+        context = {  # Data for template
+            'reports': reports,  # User reports
+            'cleaned_data': cleaned,  # Cleaned rows
+            'issues': issues,  # Issues list
+            'initial': initial,  # Initial count
+            'returns_count': returns_count,  # Returns count
+            'returns_total': returns_total,  # Returns total
+            'gross_revenue': gross_revenue,  # Gross revenue
+            'price': price,  # Calculated price
+        }
+        return render(request, 'home/index.html', context)  # Show result page
+
+    return render(request, 'home/index.html', {'reports': reports})  # Show home page
+
+# Branch compare view - compare 3 branches
+@login_required
 def branch_compare(request):
-    my_branches = Store.objects.filter(
-        Q(owner=request.user) | Q(staff__user=request.user)
-    ).distinct()
+    my_branches = Store.objects.filter(  # Get user's stores
+        Q(owner=request.user) | Q(staff__user=request.user)  # Owner or staff
+    ).distinct()  # Remove duplicates
 
-    results = []
-    branch_rows = {}
-    if request.method == 'POST':
-        for i in [1,2,3]:
-            branch_id = request.POST.get(f'branch{i}_id')
-            file = request.FILES.get(f'branch{i}_file')
-            if branch_id and file:
-                branch = Store.objects.get(id=branch_id)
-                sales, returns, row_count = parse_csv_file(file)
-                results.append({
-                    'branch_name': branch.name,
-                    'sales': sales,
-                    'returns': returns
+    results = []  # List of results
+    branch_rows = {}  # Dict of row counts
+    if request.method == 'POST':  # If form submitted
+        for i in [1,2,3]:  # For 3 branches
+            branch_id = request.POST.get(f'branch_{i}_id')  # Get branch id
+            file = request.FILES.get(f'branch_{i}_file')  # Get file
+            if branch_id and file:  # If both provided
+                branch = Store.objects.get(id=branch_id)  # Get store object
+                sales, returns, row_count = parse_csv_file(file)  # Parse file
+                results.append({  # Add result
+                    'branch_name': branch.name,  # Branch name
+                    'sales': sales,  # Sales total
+                    'returns': returns  # Returns total
                 })
-                branch_rows[branch.name] = row_count
+                branch_rows[branch.name] = row_count  # Save row count
 
-        max_rows = max(branch_rows.values()) if branch_rows else 0
-        if max_rows <= 30:
-            price = 0
-        elif max_rows <= 100:
-            price = 1000
-        elif max_rows <= 200:
-            price = 1500
-        else:
-            price = 2500
+        if branch_rows:  # If we have data
+            max_rows = max(branch_rows.values())  # Get max rows
+            # Use get_price function from models.py, not hardcoded
+            price = get_price(max_rows)  # Calculate price using central function
 
-        return render(request, 'home/index.html', {
-            'my_branches': my_branches,
-            'results': results,
-            'branch_rows': branch_rows,
-            'max_rows': max_rows,
-            'price': price
-        })
+            return render(request, 'home/index.html', {  # Render with results
+                'my_branches': my_branches,
+                'results': results,
+                'branch_rows': branch_rows,
+                'max_rows': max_rows,
+                'price': price
+            })
 
-    return render(request, 'home/index.html', {
+    return render(request, 'home/index.html', {  # Render without results
         'my_branches': my_branches,
         'results': results
     })
