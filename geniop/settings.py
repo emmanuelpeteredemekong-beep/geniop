@@ -95,7 +95,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # MEDIA FILES
-MEDIA_URL = '/media/'
+MEDIA_URL = '/media/' 
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # DEFAULT FIELD
@@ -105,3 +105,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/admin/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# Later for real email, we change to SMTP
