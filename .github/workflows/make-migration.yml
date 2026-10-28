@@ -1,1 +1,21 @@
-
+name: Create Migration File
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install
+        run: pip install -r requirements.txt
+      - name: Make migrations
+        run: python manage.py makemigrations accounts
+      - name: Push migration
+        run: |
+          git config user.name "Emmanuel"
+          git config user.email "emmanuel@geniop.com"
+          git add accounts/migrations/
+          git commit -m "auto migration" || echo "nothing"
+          git push
