@@ -110,6 +110,7 @@ def parse_csv_file(file):
     
     total_sales = 0
     total_returns = 0
+    total_rows = 0
     
     for row in reader:
         try:
@@ -125,33 +126,54 @@ def parse_csv_file(file):
                 amount = float(last_val)
             
             total_sales += amount
+            total_rows += 1
             if amount < 0:  # keeps -50 as return
                 total_returns += amount
         except:
             continue
     
-    return total_sales, total_returns
+        return total_sales, total_returns, total_rows
 
 def branch_compare(request):
     my_branches = Store.objects.filter(
         Q(owner=request.user) | Q(staff__user=request.user)
     ).distinct()
-    
+
     results = []
+    branch_rows = {}
     if request.method == 'POST':
         for i in [1,2,3]:
             branch_id = request.POST.get(f'branch{i}_id')
             file = request.FILES.get(f'branch{i}_file')
             if branch_id and file:
                 branch = Store.objects.get(id=branch_id)
-                sales, returns = parse_csv_file(file)  # only reads, no save
+                sales, returns, row_count = parse_csv_file(file)
                 results.append({
                     'branch_name': branch.name,
                     'sales': sales,
                     'returns': returns
                 })
+                branch_rows[branch.name] = row_count
 
-    return render(request, 'home/compare.html', {
-        'my_branches': my_branches, 
+        max_rows = max(branch_rows.values()) if branch_rows else 0
+        if max_rows <= 30:
+            price = 0
+        elif max_rows <= 100:
+            price = 1000
+        elif max_rows <= 200:
+            price = 1500
+        else:
+            price = 2500
+
+        return render(request, 'home/index.html', {
+            'my_branches': my_branches,
+            'results': results,
+            'branch_rows': branch_rows,
+            'max_rows': max_rows,
+            'price': price
+        })
+
+    return render(request, 'home/index.html', {
+        'my_branches': my_branches,
         'results': results
     })
