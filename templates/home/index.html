@@ -1,0 +1,184 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Geniop - Market Intelligence</title>
+<script src="https://checkout.flutterwave.com/v3.js"></script>
+<style>
+body { font-family: Inter, sans-serif; background:#f9fafb; margin:0; }
+.header { background:#fff; padding:12px 16px; border-bottom:1px solid #eee; position:sticky; top:0; display:flex; justify-content:space-between; }
+.brand { font-weight:800; color:#059669; font-size:20px; }
+.tabs { display:flex; background:#fff; border-bottom:1px solid #eee; }
+.tab { flex:1; text-align:center; padding:12px; text-decoration:none; color:#6b7280; font-weight:600; }
+.tab.active { color:#059669; border-bottom:2px solid #059669; }
+.card { background:#fff; margin:10px; border-radius:12px; padding:14px; box-shadow:0 1px 3px rgba(0,0,0,0.05); }
+.free { border-left:4px solid #059669; }
+.locked { border-left:4px solid #f59e0b; opacity:0.9; }
+.badge-free { background:#ecfdf5; color:#059669; padding:2px 8px; border-radius:999px; font-size:12px; }
+.badge-locked { background:#fffbeb; color:#d97706; padding:2px 8px; border-radius:999px; font-size:12px; }
+.btn-pay { background:#059669; color:#fff; border:none; padding:12px; width:100%; border-radius:10px; font-weight:700; margin-top:10px; }
+.insight-box { background:#f0fdf4; border:1px solid #bbf7d0; padding:12px; border-radius:10px; margin:10px; }
+.quality-box { background:#fff7ed; border:1px solid #fed7aa; padding:12px; border-radius:10px; margin:10px; font-size:13px; }
+.filter-bar { display:flex; gap:8px; padding:10px; background:#fff; }
+</style>
+</head>
+<body>
+<div class="header">
+<span class="brand">Geniop</span>
+<span>{{ request.user.username }}</span>
+</div>
+
+<div class="tabs">
+<a href="?tab=foryou" class="tab {% if tab == 'foryou' %}active{% endif %}">For You</a>
+<a href="?tab=following" class="tab {% if tab == 'following' %}active{% endif %}">Following</a>
+<a href="?tab=sales" class="tab {% if tab == 'sales' %}active{% endif %}">Sales</a>
+</div>
+
+{% if tab == 'sales' %}
+    <div class="card">
+    <form method="post" enctype="multipart/form-data" action="/upload-report/">
+    {% csrf_token %}
+    <input type="file" name="file" accept=".csv,.xlsx" required>
+    <button type="submit" style="background:#059669; color:#fff; border:none; padding:8px 12px; border-radius:8px; margin-top:8px;">Upload Sales Report</button>
+    </form>
+    </div>
+
+    {% if error %}
+    <div class="card" style="color:red;">{{ error }}</div>
+    {% endif %}
+
+    {% if count %}
+    <div class="filter-bar">
+    <form method="get">
+    <input type="hidden" name="tab" value="sales">
+    <input type="date" name="start_date" value="{{ start_date }}">
+    <input type="date" name="end_date" value="{{ end_date }}">
+    <button type="submit" style="background:#111; color:#fff; border:none; padding:6px 10px; border-radius:6px;">Filter (Free)</button>
+    </form>
+    </div>
+
+    <div class="card" style="text-align:center; font-weight:600;">{{ label }}</div>
+
+    {% if issues %}
+    <div class="quality-box">
+    <b>Data Quality Report - Called Out:</b><br>
+    Initial: {{ initial }} rows → Final: {{ count }} valid ({{ removed }} removed)<br>
+    {% for issue in issues %}
+    • {{ issue }}<br>
+    {% endfor %}
+    {% if returns_count > 0 %}
+    <b>Returns:</b> {{ returns_count }} sales = {{ returns_total }}<br>
+    <b>Gross:</b> {{ gross_revenue|floatformat:0 }} | <b>Net:</b> {{ net_revenue|floatformat:0 }}
+    {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="insight-box">
+    <b>Insight Advice:</b><br>{{ insight }}
+    </div>
+
+    <!-- 1. Revenue FREE -->
+    <div class="card free">
+    <span class="badge-free">FREE</span>
+    <h3>Total Revenue (Net)</h3>
+    <h2>₦{{ total_revenue|floatformat:0 }}</h2>
+    <small>Gross ₦{{ gross_revenue|floatformat:0 }} - Returns ₦{{ returns_total|floatformat:0 }}</small>
+    </div>
+
+    <!-- 2. Profit FREE -->
+    <div class="card free">
+    <span class="badge-free">FREE</span>
+    <h3>Total Profit</h3>
+    <h2>₦{{ total_profit|floatformat:0 }}</h2>
+    <small>Net Revenue - Expenses</small>
+    </div>
+
+    <!-- 3. Expenses LOCKED -->
+    <div class="card locked">
+    <span class="badge-locked">LOCKED - Pay ₦{{ price }} to unlock</span>
+    <h3>Total Expenses</h3>
+    {% if last_report.is_paid %}
+    <h2>₦{{ total_expense|floatformat:0 }}</h2>
+    {% else %}
+    <h2>₦****</h2>
+    <button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} with Flutterwave to unlock</button>
+    {% endif %}
+    </div>
+
+    <!-- 4. Best/Worst LOCKED -->
+    <div class="card locked">
+    <span class="badge-locked">LOCKED</span>
+    <h3>Best & Worst Products</h3>
+    {% if last_report.is_paid %}
+    <p>Best: {{ best_product.product }} - ₦{{ best_product.total|floatformat:0 }}</p>
+    <p>Worst: {{ worst_product.product }} - ₦{{ worst_product.total|floatformat:0 }}</p>
+    {% else %}
+    <p>Best: **** - ₦****</p>
+    <p>Worst: **** - ₦****</p>
+    <button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} with Flutterwave to unlock</button>
+    {% endif %}
+    </div>
+
+    <!-- 5. Branch Comparison LOCKED -->
+    <div class="card locked">
+    <span class="badge-locked">LOCKED - Branch Comparison</span>
+    <h3>Branch Comparison + Growth</h3>
+    {% if last_report.is_paid %}
+    {% for b in branches %}
+    <p>{{ b.branch }}: ₦{{ b.total|floatformat:0 }}</p>
+    {% endfor %}
+    {% else %}
+    {% for b in branches %}
+    <p>{{ b.branch }}: ₦****</p>
+    {% endfor %}
+    <button class="btn-pay" onclick="payNow()">Pay ₦{{ price }} with Flutterwave to unlock</button>
+    {% endif %}
+    </div>
+
+    <script>
+    function payNow() {
+        FlutterwaveCheckout({
+            public_key: "FLWPUBK-TEST-xxxxxxxxxxxxxxxx-X", // REPLACE with your key from dashboard.flutterwave.com
+            tx_ref: "GENIOP-{{ count }}-" + Date.now(),
+            amount: {{ price }},
+            currency: "NGN",
+            customer: { email: "{{ request.user.email }}", name: "{{ request.user.username }}" },
+            callback: function(data) {
+                // Call backend to mark as paid
+                fetch('/mark-paid/{{ last_report.id }}/').then(()=>location.reload());
+            },
+            customizations: { title: "Geniop Unlock", description: "Unlock full report for {{ count }} sales" }
+        });
+    }
+    </script>
+
+    {% endif %}
+
+{% else %}
+    <!-- For You / Following Feed -->
+    <div class="card">
+    <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <textarea name="caption" placeholder="What's selling in your market today?" style="width:100%; border:1px solid #eee; border-radius:10px; padding:10px;"></textarea>
+    <input type="file" name="image" accept="image/*" required style="margin-top:8px;">
+    <button type="submit" style="background:#059669; color:#fff; border:none; padding:10px; width:100%; border-radius:10px; margin-top:8px; font-weight:700;">Post</button>
+    </form>
+    </div>
+
+    {% for post in posts %}
+    <div class="card">
+    <b>{{ post.user.username }}</b> <small>{{ post.location }}</small>
+    <p>{{ post.caption }}</p>
+    {% if post.image %}
+    <img src="{{ post.image.url }}" style="width:100%; border-radius:10px; margin-top:8px;">
+    {% endif %}
+    </div>
+    {% endfor %}
+{% endif %}
+    
+<div id="errorBox" style="display:none"></div>
+<div id="profitBox"></div>
+<script src="{% static 'home/js/home.js' %}"></script>
+</body>
+  </html>
