@@ -1,0 +1,33 @@
+{% load static %}  <!-- Load static -->
+<!DOCTYPE html>  <!-- HTML5 -->
+<html>  <!-- HTML -->
+<head>  <!-- Head -->
+<meta charset="UTF-8">  <!-- UTF-8 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  <!-- Mobile -->
+<title>Branches - Geniop</title>  <!-- Title -->
+<style>  /* Styles */
+body { font-family: Inter, sans-serif; background:#f9fafb; margin:0; }  /* Body */
+.card { background:#fff; margin:10px; border-radius:12px; padding:15px; }  /* Card */
+.btn { background:#059669; color:#fff; border:none; padding:10px 16px; border-radius:8px; width:100%; cursor:pointer; }  /* Button */
+</style>  <!-- End styles -->
+</head>  <!-- End head -->
+<body>  <!-- Body -->
+<div class="card">  <!-- Card -->
+<h3>🏪 Select Branch to Access Business Account</h3>  <!-- Title: branches first rule -->
+<p>Rule: To access Business Account you will reach the branches first - Your rule</p>  <!-- Rule explanation -->
+</div>  <!-- End card -->
+{% for store in stores %}  <!-- Loop stores -->
+<div class="card">  <!-- Store card -->
+<h4>{{ store.name }}</h4>  <!-- Store name -->
+<p>{{ store.address }}</p>  <!-- Address -->
+<form method="post">  <!-- Form: select branch -->
+{% csrf_token %}  <!-- CSRF -->
+<input type="hidden" name="store_id" value="{{ store.id }}">  <!-- Store ID -->
+<button type="submit" class="btn">Access Business Account via {{ store.name }}</button>  <!-- Access button -->
+</form>  <!-- End form -->
+</div>  <!-- End store card -->
+{% empty %}  <!-- No stores -->
+<div class="card"><p>No branches found. Create a store first.</p><a href="/accounts/create-store/">Create Store</a></div>  <!-- Empty -->
+{% endfor %}  <!-- End loop -->
+</body>  <!-- End body -->
+</html>  <!-- End html -->
