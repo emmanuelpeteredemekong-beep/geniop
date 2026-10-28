@@ -109,9 +109,9 @@ def parse_csv_file(file):
 
     # Return totals
     return total_sales, total_returns, total_rows
-
 # Home view - main page with report upload - matches urls.py path('', views.home_view)
-@login_required  # Must be logged in
+
+# Must be logged in
 def home_view(request):
     reports = QuickSalesReport.objects.filter(user=request.user).order_by('-id')  # User reports
     if request.method == 'POST' and request.FILES.get('file'):  # If file uploaded
