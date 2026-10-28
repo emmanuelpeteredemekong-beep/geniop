@@ -1,11 +1,9 @@
-from django.urls import path  # Import path for URL routing
-from . import views  # Import views from same folder
+from django.urls import path
+from . import views
 
-# List of URL patterns for home app
 urlpatterns = [
-    # Home page URL, maps to home view, name is 'home' - your marketplace
-    path('', views.home, name='home'),  # Use views.home - matches function name in views.py
-
-    # Compare page URL, maps to branch_compare, name is 'branch_compare' - professional 10 max
-    path('compare/', views.branch_compare, name='branch_compare'),  # New: branch compare with 10 limit
+    path('', views.home, name='home'),
+    path('compare/', views.branch_compare, name='compare'),
+    path('terms/', views.terms_view, name='terms'),
+    path('privacy/', views.privacy_view, name='privacy'),
 ]
