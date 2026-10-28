@@ -96,3 +96,62 @@ def home_view(request):
         return render(request, 'home/index.html', context)
 
     return render(request, 'home/index.html', {'reports': reports})
+
+import csv
+import io
+from accounts.models import Store
+from django.db.models import Q
+
+def parse_csv_file(file):
+    # Read CSV like before, keep -50 as return
+    text = file.read().decode('utf-8')
+    file.seek(0)
+    reader = csv.DictReader(io.StringIO(text))
+    
+    total_sales = 0
+    total_returns = 0
+    
+    for row in reader:
+        try:
+            # find amount column - check 'amount', 'total', 'price', last column
+            amount = None
+            for key in ['amount', 'total', 'price', 'Amount', 'TOTAL']:
+                if key in row and row[key]:
+                    amount = float(row[key])
+                    break
+            if amount is None:
+                # take last value
+                last_val = list(row.values())[-1]
+                amount = float(last_val)
+            
+            total_sales += amount
+            if amount < 0:  # keeps -50 as return
+                total_returns += amount
+        except:
+            continue
+    
+    return total_sales, total_returns
+
+def branch_compare(request):
+    my_branches = Store.objects.filter(
+        Q(owner=request.user) | Q(staff__user=request.user)
+    ).distinct()
+    
+    results = []
+    if request.method == 'POST':
+        for i in [1,2,3]:
+            branch_id = request.POST.get(f'branch{i}_id')
+            file = request.FILES.get(f'branch{i}_file')
+            if branch_id and file:
+                branch = Store.objects.get(id=branch_id)
+                sales, returns = parse_csv_file(file)  # only reads, no save
+                results.append({
+                    'branch_name': branch.name,
+                    'sales': sales,
+                    'returns': returns
+                })
+
+    return render(request, 'home/compare.html', {
+        'my_branches': my_branches, 
+        'results': results
+    })
