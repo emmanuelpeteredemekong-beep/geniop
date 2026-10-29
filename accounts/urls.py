@@ -1,33 +1,20 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse
-from django.contrib.auth import login, logout
+from django.urls import path
+from . import views
 
-# --- TEMP VIEWS FOR DEPLOY - Phase 2 Live ---
+# Phase 3 + Affiliate - only live views
+urlpatterns = [
+    path('register/', views.register_view, name='register'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('profile/', views.profile_view, name='profile'),
+    path('branches/', views.branches_view, name='branches'),
+    path('create-store/', views.create_store_view, name='create_store'),
+    path('create-product-link/', views.create_product_link_view, name='create_product_link'),
+    path('product-sale/<str:product_id>/', views.product_sale_view, name='product_sale'),
+    path('pay-1500/', views.marketplace_access_payment_view, name='pay_1500'),
 
-def register_view(request):
-    return render(request, 'accounts/register.html')
-
-def login_view(request):
-    return render(request, 'accounts/login.html')
-
-def logout_view(request):
-    logout(request)
-    return redirect('home')
-
-def profile_view(request):
-    return render(request, 'accounts/profile.html')
-
-def branches_view(request):
-    return render(request, 'accounts/branches.html')
-
-def create_store_view(request):
-    return HttpResponse("Create Store - Coming Phase 3")
-
-def create_product_link_view(request):
-    return HttpResponse("Create Product Link - Coming Phase 3")
-
-def product_sale_view(request, product_id):
-    return HttpResponse(f"Product Sale {product_id}")
-
-def marketplace_access_payment_view(request):
-    return HttpResponse("Pay 1500 - Marketplace Access")
+    # Phase 4 - will add later after views exist
+    # path('block/<int:user_id>/', views.block_user_view, name='block_user'),
+    # path('report/<int:user_id>/', views.report_account_view, name='report_account'),
+    # path('notifications/', views.notifications_view, name='notifications'),
+]
