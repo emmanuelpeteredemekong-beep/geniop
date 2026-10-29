@@ -2,8 +2,6 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib import messages
 
-# Temporary deploy-safe views - Phase 2 LIVE
-
 def register_view(request):
     if request.method == 'POST':
         from django.contrib.auth.models import User
@@ -52,32 +50,4 @@ def product_sale_view(request, product_id):
 
 def marketplace_access_payment_view(request):
     from django.http import HttpResponse
-    return HttpResponse("Pay 1500 - coming")ted_affiliate=affiliate)  # Commission notification
-                    # Create advice if high sales
-                    if product_link.sales >= 5:  # 5 sales
-                        AffiliateAdvice.objects.create(affiliate=affiliate, title='Top Performing Product', message=f'{product_link.product_name} is your top product with {product_link.sales} sales! Promote it more - it sells 3x better than others. Share your link {product_link.link} on WhatsApp.', type='success')  # Advice
-        except Exception as e:  # Exception
-            print(f"Affiliate sale error: {e}")  # Print error
-    return redirect(f'/product/{product_id}/')  # Redirect to product page
-
-# Marketplace Access Payment: user pays 1500 for unlimited
-@login_required  # Login required
-def marketplace_access_payment_view(request):  # Pay 1500 for unlimited
-    rates = GeniopCommissionRate.objects.filter(is_active=True).first()  # Rates
-    price = rates.marketplace_access_price if rates else 1500.0  # Price
-    if request.method == 'POST':  # POST: paid via Flutterwave
-        flutterwave_ref = request.POST.get('flutterwave_ref', '')  # Flutterwave ref
-        # Check if user was referred
-        affiliate_referral = None  # Affiliate referral
-        try:  # Try
-            referral = Referral.objects.get(referred_user=request.user)  # Get referral
-            affiliate_referral = referral.affiliate  # Affiliate
-            referral.has_paid_1500 = True  # Mark paid 1500
-            referral.save()  # Save
-        except:  # Except
-            pass  # No referral
-        # Create payment record
-        payment = MarketplaceAccessPayment.objects.create(user=request.user, amount=price, affiliate=affiliate_referral, is_paid=True, flutterwave_ref=flutterwave_ref)  # Payment
-        # Mark affiliate as paid for unlimited
-        request.user.affiliate.has_paid_1500 = True  # Paid 1500
-        request.user.affiliate.save
+    return HttpResponse("Pay 1500 - coming")
