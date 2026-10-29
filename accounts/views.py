@@ -1,160 +1,58 @@
-from django.shortcuts import render, redirect, get_object_or_404  # Shortcuts
-from django.contrib.auth import login, logout, authenticate  # Auth
-from django.contrib.auth.models import User  # User
-from django.contrib.auth.decorators import login_required  # Login required
-from django.contrib import messages  # Messages
-from django.db.models import Sum, Count  # Aggregation
-from .models import *  # All models
-from home.models import Post  # Post model: home page posts stored in profile
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, logout, authenticate
+from django.contrib import messages
 
-# Capture referral code from URL: ?ref=CODE
-def capture_referral(request):  # Capture ref from URL
-    ref_code = request.GET.get('ref')  # Get ref code from URL
-    if ref_code:  # If ref exists
-        request.session['affiliate_ref'] = ref_code  # Save to session
-        # Increment clicks for product link if product page
-        try:  # Try to increment clicks
-            affiliate = Affiliate.objects.get(code=ref_code)  # Get affiliate
-            affiliate.total_product_clicks += 1  # Increment clicks
-            affiliate.save()  # Save
-        except:  # Except
-            pass  # Ignore if no affiliate
+# Temporary deploy-safe views - Phase 2 LIVE
 
-# Register: with referral tracking
-def register_view(request):  # Register view
-    capture_referral(request)  # Capture referral code first
-    if request.method == 'POST':  # POST request
-        username = request.POST.get('username')  # Username
-        email = request.POST.get('email')  # Email
-        password = request.POST.get('password')  # Password
-        if User.objects.filter(username=username).exists():  # Check if exists
-            messages.error(request, 'Username already exists')  # Error
-        else:  # Not exists
-            user = User.objects.create_user(username=username, email=email, password=password)  # Create user
-            # Check if user was referred by affiliate
-            ref_code = request.session.get('affiliate_ref')  # Get ref from session
-            if ref_code:  # If ref exists
-                try:  # Try to create referral
-                    affiliate = Affiliate.objects.get(code=ref_code)  # Get affiliate
-                    Referral.objects.create(affiliate=affiliate, referred_user=user)  # Create referral
-                    affiliate.total_referrals += 1  # Increment referrals count: at least 100 target
-                    affiliate.save()  # Save
-                    # Create notification for affiliate: referral joined
-                    Notification.objects.create(user=affiliate.user, type='referral_joined', title='New Referral Joined', message=f'{username} joined with your referral code')  # Notification
-                    # Create advice if milestone
-                    if affiliate.total_referrals == 100:  # Hit 100 referrals
-                        AffiliateAdvice.objects.create(affiliate=affiliate, title='Milestone Unlocked!', message='You hit 100 referrals! You now have unlimited product links and can earn from marketplace access payments.', type='success')  # Advice
-                except:  # Except
-                    pass  # Ignore
-            login(request, user)  # Login user
-            return redirect('profile')  # Redirect to profile
-    return render(request, 'accounts/register.html')  # Render register page
+def register_view(request):
+    if request.method == 'POST':
+        from django.contrib.auth.models import User
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        if User.objects.filter(username=username).exists():
+            messages.error(request, 'Username exists')
+        else:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            login(request, user)
+            return redirect('profile')
+    return render(request, 'accounts/register.html')
 
-# Login
-def login_view(request):  # Login view
-    capture_referral(request)  # Capture ref even on login page
-    if request.method == 'POST':  # POST
-        username = request.POST.get('username')  # Username
-        password = request.POST.get('password')  # Password
-        user = authenticate(request, username=username, password=password)  # Authenticate
-        if user:  # If user exists
-            login(request, user)  # Login
-            return redirect('home')  # Redirect home
-        else:  # No user
-            messages.error(request, 'Invalid credentials')  # Error
-    return render(request, 'accounts/login.html')  # Render login
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user:
+            login(request, user)
+            return redirect('home')
+        else:
+            messages.error(request, 'Invalid')
+    return render(request, 'accounts/login.html')
 
-# Logout
-def logout_view(request):  # Logout view
-    logout(request)  # Logout
-    return redirect('login')  # Redirect login
+def logout_view(request):
+    logout(request)
+    return redirect('login')
 
-# Profile: affiliate dashboard inside profile + all posts stored in profile
-@login_required  # Login required
-def profile_view(request):  # Profile view: main Phase 3
-    user = request.user  # Current user
-    profile = user.profile  # Profile
-    affiliate = user.affiliate  # Affiliate inside profile
-    # Business access check: must have branches first
-    can_access_business = profile.can_access_business()  # Check branches first: your rule
-    # All posts in home page stored in profile: Phase 3 requirement
-    my_posts = Post.objects.filter(user=user).order_by('-created_at')  # All home posts by user
-    # Affiliate data: counts referrals and stores
-    referrals = Referral.objects.filter(affiliate=affiliate).order_by('-created_at')  # Referrals list
-    my_stores = Store.objects.filter(owner=user)  # Stores he added
-    product_links = ProductAffiliateLink.objects.filter(affiliate=affiliate).order_by('-created_at')  # Product links: 5 max free
-    commissions = Commission.objects.filter(affiliate=affiliate).order_by('-created_at')[:20]  # Recent commissions
-    # Earnings breakdown: from where which product sold more
-    total_store_earnings = Commission.objects.filter(affiliate=affiliate, type='store_product').aggregate(Sum('amount'))['amount__sum'] or 0  # Link 1 earnings
-    total_general_earnings = Commission.objects.filter(affiliate=affiliate, type='general_product').aggregate(Sum('amount'))['amount__sum'] or 0  # Link 2 earnings
-    total_access_earnings = Commission.objects.filter(affiliate=affiliate, type='marketplace_access').aggregate(Sum('amount'))['amount__sum'] or 0  # Link 3 earnings
-    # Analytics: top product, worst product
-    try:  # Try analytics
-        analytics = affiliate.analytics  # Analytics
-        # Calculate top product by sales
-        top_product = ProductAffiliateLink.objects.filter(affiliate=affiliate).order_by('-sales').first()  # Top product
-        worst_product = ProductAffiliateLink.objects.filter(affiliate=affiliate).order_by('sales').first()  # Worst product
-        analytics.top_selling_product = top_product  # Set top
-        analytics.worst_selling_product = worst_product  # Set worst
-        analytics.save()  # Save
-    except:  # Except
-        analytics = None  # No analytics
-    # Advice: little text box that understands business logic
-    advices = AffiliateAdvice.objects.filter(affiliate=affiliate, is_read=False).order_by('-created_at')[:3]  # Unread advices: interactive
-    # Generate advice based on data: interactive system
-    if product_links.count() > 0 and advices.count() == 0:  # If has product links but no advice
-        # Check if any product has 0 sales
-        zero_sales = ProductAffiliateLink.objects.filter(affiliate=affiliate, sales=0).count()  # Zero sales
-        if zero_sales > 2:  # Many zero sales
-            AffiliateAdvice.objects.create(affiliate=affiliate, title='Low Performing Links', message=f'{zero_sales} of your product links have 0 sales. Try promoting your top store {my_stores.first().name if my_stores.exists() else "products"} more - they convert better when you use your referred store link.', type='warning')  # Advice
-    # Notifications: connected
-    notifications = Notification.objects.filter(user=user, is_read=False).order_by('-created_at')[:5]  # Unread notifications
-    # Earnings breakdown daily
-    breakdown = EarningsBreakdown.objects.filter(affiliate=affiliate).order_by('-date')[:7]  # Last 7 days
-    # Commission rates: configurable
-    rates = GeniopCommissionRate.objects.filter(is_active=True).first()  # Get active rates
-    # Account switching log
-    switch_logs = AccountSwitchLog.objects.filter(user=user).order_by('-created_at')[:5]  # Recent switches
+def profile_view(request):
+    return render(request, 'accounts/profile.html')
 
-    context = {  # Context
-        'profile': profile,  # Profile
-        'affiliate': affiliate,  # Affiliate
-        'can_access_business': can_access_business,  # Branches first check
-        'my_posts': my_posts,  # All home page posts stored in profile
-        'referrals': referrals,  # Referrals count
-        'my_stores': my_stores,  # Stores added
-        'product_links': product_links,  # Product links: 5 max
-        'commissions': commissions,  # Commissions
-        'total_store_earnings': total_store_earnings,  # Link 1 earnings
-        'total_general_earnings': total_general_earnings,  # Link 2 earnings
-        'total_access_earnings': total_access_earnings,  # Link 3 earnings
-        'analytics': analytics,  # Analytics
-        'advices': advices,  # Advice box
-        'notifications': notifications,  # Notifications
-        'breakdown': breakdown,  # Earnings breakdown
-        'rates': rates,  # Rates
-        'switch_logs': switch_logs,  # Switch logs
-    }
-    return render(request, 'accounts/profile.html', context)  # Render profile
+def branches_view(request):
+    return render(request, 'accounts/branches.html')
 
-# Branches First: business account entry - must reach branches first
-@login_required  # Login required
-def branches_view(request):  # Branches view: business entry
-    user = request.user  # User
-    owned_stores = Store.objects.filter(owner=user)  # Owned stores
-    staff_stores = user.staff_stores.all()  # Staff stores
-    all_stores = list(owned_stores) + list(staff_stores)  # All stores
-    if not all_stores:  # No branches
-        messages.error(request, 'You need to create a branch/store first to access Business Account')  # Error: branches first rule
-        return redirect('create_store')  # Redirect create store
-    # Log account switching: from personal to business via branch
-    if request.method == 'POST':  # POST: selected store to access business
-        store_id = request.POST.get('store_id')  # Store ID
-        store = get_object_or_404(Store, id=store_id)  # Get store
-        # Log switch
-        AccountSwitchLog.objects.create(user=user, from_account='personal', to_account='business', store=store)  # Log
-        # Create notification
-        Notification.objects.create(user=user, type='business_access', title='Business Account Accessed', message=f'You accessed business account via {store.name}', related_store=store)  # Notification
+def create_store_view(request):
+    return render(request, 'accounts/create_store.html')
+
+def create_product_link_view(request):
+    return render(request, 'accounts/create_product_link.html')
+
+def product_sale_view(request, product_id):
+    from django.http import HttpResponse
+    return HttpResponse(f"Product {product_id}")
+
+def marketplace_access_payment_view(request):
+    from django.http import HttpResponse
+    return HttpResponse("Pay 1500 - coming")nt via {store.name}', related_store=store)  # Notification
         request.session['active_store_id'] = store.id  # Set active store in session
         return redirect('business_dashboard')  # Redirect business dashboard
     return render(request, 'accounts/branches.html', {'stores': all_stores})  # Render branches
